@@ -1,17 +1,18 @@
 #include <Arduino.h>
 #include <U8g2lib.h>
-#include <SoftWire.h>
+#include <Wire.h>
 #include <Keyboard.h>
 #include <SoftwareSerial.h>
 #include <EEPROM.h>
 
 
 // Khai báo chân nút bấm
-const int buttonPins[4] = {2, 3, 4, 5};
+const int buttonPins[4] = {4, 5, 6, 7};
 // Mapping phím tương ứng
 
-char osukeys[4][4] = {
+char osukeys[5][4] = {
 	{KEY_ESC, '`', 'z', 'x'}, // osu std
+	{KEY_ESC, 'z', 'c', 'x'}, // osu std # 2
 	{'z', 'x', 'c', 'v'}, // osu mania + osu taiko
 	{'z', 'x', 'c', 'v'},
 	{KEY_ESC, KEY_LEFT_SHIFT, KEY_LEFT_ARROW, KEY_RIGHT_ARROW} // osu catch
@@ -23,7 +24,7 @@ bool configState = false;
 bool updateScreen = true;
 
 // Khởi tạo giao tiếp I2C mềm trên chân 7 và 6
-SoftWire softI2C(7, 6);
+// SoftWire softI2C(7, 6);
 
 // Khai báo đối tượng U8g2
 // U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 6, /* data=*/ 7, /* reset=*/ U8X8_PIN_NONE);
@@ -34,7 +35,7 @@ SoftWire softI2C(7, 6);
 // SW_I2C: Giao tiếp I2C phần mềm (Software I2C)
 // Pin đồng hồ (SCL) là 6, Pin dữ liệu (SDA) là 7
 // Pin reset không sử dụng nên đặt là U8X8_PIN_NONE
-U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, 7, 6, U8X8_PIN_NONE);
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 
 
 // 'dm_emiko', 128x64px
@@ -87,7 +88,6 @@ const unsigned char* myBitmapallArray[myBitmapallArray_LEN] = {
 int backgroundNum = 0;
 
 void setup(void) {
-  softI2C.begin();
   u8g2.begin();
 	Serial.begin(9600);
     // Khởi tạo nút bấm
@@ -95,7 +95,7 @@ void setup(void) {
     pinMode(buttonPins[i], INPUT_PULLUP);  // Dùng internal pull-up
   }
 
-	if (digitalRead(2) == LOW) {
+	if (digitalRead(4) == LOW) {
 		Serial.println("Config mode detected");
 		configState = true;
 	}
@@ -120,7 +120,7 @@ void loop(void) {
 	while (configState) {
 		setConfig();
 	} 
-	if (digitalRead(2) != LOW && updateScreen) {
+	if (digitalRead(4) != LOW && updateScreen) {
 		u8g2.clearBuffer();
 		EEPROM.get(0, backgroundNum);
 		u8g2.drawXBMP(0, 0, 128, 64, myBitmapallArray[backgroundNum]);
@@ -150,7 +150,7 @@ void loop(void) {
 void setConfig() {
 	char* modes[] = {"","Background", "Modes", "Info", "Exit", ""};
 	char* backgrounds[] = {"", "Dm Emiko Nin", "Bad Apple", "Hoshino", "osu! Logo", ""};
-	char* moes[] = {"", "osu!", "osu! mania", "osu! taiko", "osu! catch", ""};
+	char* moes[] = {"", "osu!", "osu! 2", "osu! mania", "osu! taiko", "osu! catch", ""};
 	int mode = 1;
 	bool needUpdate = true;
 	bool backgroundMode = false;
@@ -172,17 +172,17 @@ void setConfig() {
 
 			needUpdate = false;
 		}
-		if (digitalRead(4) == LOW && mode < len) {
+		if (digitalRead(6) == LOW && mode < len) {
 			mode += 1;
 			needUpdate = true;
 			delay(100);
 		}
-		if (digitalRead(3) == LOW && mode > 1) {
+		if (digitalRead(5) == LOW && mode > 1) {
 			mode -= 1;
 			needUpdate = true;
 			delay(100);
 		}
-		if (digitalRead(5) == LOW) {
+		if (digitalRead(7) == LOW) {
 			if (backgroundMode) {
 				EEPROM.put(0, mode - 1);
 				u8g2.clearBuffer();
@@ -225,7 +225,7 @@ void setConfig() {
 					u8g2.drawXBMP(0, 0, 96, 48, epd_bitmap_firm_logo_small);
 					u8g2.setFont(u8g2_font_5x7_tf);
 					u8g2.drawStr(0, 48, "Made by BiaHaNoi");
-					u8g2.drawStr(0, 57, "Inspired by DU Origins");
+					u8g2.drawStr(0, 57, "Inspired by DU ORIGIN");
 					u8g2.sendBuffer();
 					delay(3000);
 					return;
